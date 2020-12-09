@@ -2,42 +2,49 @@ import pkg_resources
 
 from jinja2 import Environment, FileSystemLoader
 
+from cloudify_cdk.nodes import NodeTemplate
 
-class AwsStack(object):
+
+class Aws(object):
     def __init__(self,
                  region_name='eu-west-1',
                  access_key_id=None,
                  secret_access_key=None):
-        self.access_key_id = access_key_id or {'get_secret':
-                                                   'aws_access_key_id'}
-        self.secret_access_key = secret_access_key or {
-            'get_secret': 'aws_secret_access_key'}
-
         self.client_config = {
-            'aws_access_key_id': self.access_key_id,
-            'aws_secret_access_key': self.secret_access_key,
+            'aws_access_key_id': access_key_id,
+            'aws_secret_access_key': secret_access_key,
             'region_name': region_name
         }
         self.blueprint_schema_name = 'aws_base.yaml'
 
-        self.vm = None
+        self.node_templates = []
 
     def get_template(self):
         templates_env = Environment(
-            loader=FileSystemLoader(pkg_resources.resource_filename(
-                'cloudify_cdk', 'aws/schemas')
-            ))
+            loader=FileSystemLoader(
+                pkg_resources.resource_filename('cloudify_cdk', 'schemas')))
 
-        return templates_env.get_template(self.blueprint_schema_name)
+        return templates_env.get_template('aws_base.yaml')
+
+    def _prepare_node_templates(self):
+        node_templates_dict = {}
+        for node_temp in self.node_templates:
+            node_templates_dict[node_temp.name] = node_temp.to_dict()
+
+        return node_templates_dict
 
     def synth(self, output_path):
-        rendered_data = self.get_template().render(vm=self.vm.to_dict())
+        rendered_data = self.get_template().render(
+            client_config=self.client_config,
+            node_templates=self._prepare_node_templates(),
+        )
         with open(output_path, 'w') as blueprint:
             blueprint.write(rendered_data)
 
 
-class Ec2Instance(object):
+class VM(NodeTemplate):
     def __init__(self,
+                 name,
                  client_config,
                  agent_install_method=None,
                  agent_user='centos',
@@ -51,16 +58,17 @@ class Ec2Instance(object):
                  use_public_ip=True,
                  relationships=None
                  ):
+        super().__init__(name)
         self.client_config = client_config
         self.agent_install_method = agent_install_method
         self.agent_user = agent_user
-        self.agent_key = agent_key or {'get_attribute':
-                                           ['agent_key', 'private_key_export']}
+        self.agent_key = agent_key
         self.image_id = image_id
         self.instance_type = instance_type
         self.availability_zone = availability_zone
-        self.user_data = user_date or { 'get_attribute':
-                                            ['cloud_init', 'cloud_config'] }
+        self.user_data = user_date or {
+            'get_attribute': ['cloud_init', 'cloud_config']
+        }
 
         self.block_device_mappings = block_device_mappings or [
             {'DeviceName': '/dev/xvda',

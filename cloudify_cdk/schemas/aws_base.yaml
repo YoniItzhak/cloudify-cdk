@@ -60,8 +60,9 @@ dsl_definitions:
 
 node_templates:
 
-  vm:
-    {{ vm }}
+  {% for k, v in node_templates.items() %}
+  {{ k }}: {{ v }}
+  {% endfor %}
 
   floating_ip:
     type: cloudify.nodes.aws.ec2.ElasticIP
@@ -134,21 +135,6 @@ node_templates:
     relationships:
       - type: cloudify.relationships.depends_on
         target: agent_key
-
-  agent_key:
-    type: cloudify.keys.nodes.RSAKey
-    properties:
-      resource_config:
-        key_name: { get_input: agent_key_name }
-        openssh_format: true
-      use_secret_store: true
-      use_secrets_if_exist: true
-    interfaces:
-      cloudify.interfaces.lifecycle:
-        create:
-          implementation: keys.cloudify_ssh_key.operations.create
-          inputs:
-            store_private_key_material: true
 
 capabilities:
 
