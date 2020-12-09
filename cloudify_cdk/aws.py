@@ -19,7 +19,8 @@ class Aws(object):
 
         self.node_templates = []
 
-    def get_template(self):
+    @staticmethod
+    def get_template():
         templates_env = Environment(
             loader=FileSystemLoader(
                 pkg_resources.resource_filename('cloudify_cdk', 'schemas')))
@@ -46,7 +47,7 @@ class VM(NodeTemplate):
     def __init__(self,
                  name,
                  client_config,
-                 agent_install_method=None,
+                 agent_install_method='none',
                  agent_user='centos',
                  agent_key=None,
                  image_id='ami-082ed116ae2c6d2cc',
@@ -88,7 +89,7 @@ class VM(NodeTemplate):
             {'type': 'cloudify.relationships.depends_on',
              'target': 'nic'},
             {'type': 'cloudify.relationships.depends_on',
-             'target': 'cloud_init'},
+             'target': 'cloud_init'}
         ]
 
         if use_public_ip and not relationships:
@@ -122,4 +123,144 @@ class VM(NodeTemplate):
                 'use_public_ip': self.use_public_ip
             },
             'relationships': self.bp_relationships
+        }
+
+
+class Vpc(NodeTemplate):
+    def __init__(self,
+                 name,
+                 client_config,
+                 vpc_id,
+                 cidr_block='10.20.0.0/24'):
+        super().__init__(name)
+        self.client_config = client_config
+        self.vpc_id = vpc_id
+        self.cidr_block = cidr_block
+
+    def to_dict(self):
+        return {
+            'type': 'cloudify.nodes.aws.ec2.Vpc',
+            'properties': {
+                'client_config': self.client_config,
+                'use_external_resource': True,
+                'resource_id': self.vpc_id,
+                'resource_config': {
+                    'CidrBlock': self.cidr_block
+                }
+            }
+        }
+
+
+class Subnet(NodeTemplate):
+    def __init__(self,
+                 name,
+                 client_config,
+                 subnet_id,
+                 cidr_block='10.20.0.0/24'):
+        super().__init__(name)
+        self.client_config = client_config
+        self.subnet_id = subnet_id
+        self.cidr_block = cidr_block
+
+    def to_dict(self):
+        return {
+            'type': 'cloudify.nodes.aws.ec2.Subnet',
+            'properties': {
+                'client_config': self.client_config,
+                'use_external_resource': True,
+                'resource_id': self.subnet_id,
+                'resource_config': {
+                    'CidrBlock': self.cidr_block
+                }
+            },
+            'relationships': [
+                {'type': 'cloudify.relationships.depends_on',
+                 'target': 'vpc'}
+            ]
+        }
+
+
+class ElasticIP(NodeTemplate):
+    def __init__(self,
+                 name,
+                 client_config):
+        super().__init__(name)
+        self.client_config = client_config
+
+    def to_dict(self):
+        return {
+            'type': 'cloudify.nodes.aws.ec2.ElasticIP',
+            'properties': {
+                'client_config': self.client_config
+            },
+            'relationships': [
+                {'type': 'cloudify.relationships.depends_on',
+                 'target': 'nic'}
+            ]
+        }
+
+
+class SecurityGroup(NodeTemplate):
+    def __init__(self,
+                 name,
+                 client_config,
+                 security_group_id,
+                 security_group_name,
+                 security_group_description):
+        super().__init__(name)
+        self.client_config = client_config
+        self.security_group_id = security_group_id
+        self.security_group_name = security_group_name
+        self.security_group_description = security_group_description
+
+    def to_dict(self):
+        return {
+            'type': 'cloudify.nodes.aws.ec2.SecurityGroup',
+            'properties': {
+                'client_config': self.client_config,
+                'use_external_resource': True,
+                'resource_id': self.security_group_id,
+                'resource_config': {
+                    'GroupName': self.security_group_name,
+                    'Description': self.security_group_description
+                }
+            },
+            'relationships': [
+                {'type': 'cloudify.relationships.depends_on',
+                 'target': 'vpc'}
+            ]
+        }
+
+
+class NIC(NodeTemplate):
+    def __init__(self,
+                 name,
+                 client_config,
+                 subnet_id,
+                 groups):
+        super().__init__(name)
+        self.client_config = client_config
+        self.subnet_id = subnet_id
+        self.groups = groups
+        self.description = 'Created by cloudify-getting-started-example.'
+
+    def to_dict(self):
+        return {
+            'type': 'cloudify.nodes.aws.ec2.Interface',
+            'properties': {
+                'client_config': self.client_config,
+                'resource_config': {
+                    'kwargs': {
+                        'Description': self.description,
+                        'SubnetId': self.subnet_id,
+                        'groups': self.groups
+                    }
+                }
+            },
+            'relationships': [
+                {'type': 'cloudify.relationships.depends_on',
+                 'target': 'security_group'},
+                {'type': 'cloudify.relationships.depends_on',
+                 'target': 'subnet'}
+            ]
         }

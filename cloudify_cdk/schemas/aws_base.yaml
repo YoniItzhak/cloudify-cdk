@@ -51,90 +51,11 @@ inputs:
     default: agent_key
 
 
-dsl_definitions:
-
-   client_config: &client_config
-    aws_access_key_id: { get_secret:  aws_access_key_id }
-    aws_secret_access_key: { get_secret:  aws_secret_access_key }
-    region_name: { get_input: aws_region_name }
-
 node_templates:
 
   {% for k, v in node_templates.items() %}
   {{ k }}: {{ v }}
   {% endfor %}
-
-  floating_ip:
-    type: cloudify.nodes.aws.ec2.ElasticIP
-    properties:
-      client_config: *client_config
-    relationships:
-    - type: cloudify.relationships.depends_on
-      target: nic
-
-  nic:
-    type: cloudify.nodes.aws.ec2.Interface
-    properties:
-      client_config: *client_config
-      resource_config:
-        kwargs:
-          Description: Created by cloudify-getting-started-example.
-          SubnetId: { get_attribute: [ subnet, aws_resource_id ] }
-          Groups:
-          - { get_attribute: [ security_group, aws_resource_id ] }
-    relationships:
-    - type: cloudify.relationships.depends_on
-      target: security_group
-    - type: cloudify.relationships.depends_on
-      target: subnet
-
-  subnet:
-    type: cloudify.nodes.aws.ec2.Subnet
-    properties:
-      client_config: *client_config
-      use_external_resource: true
-      resource_id: { get_input: aws_subnet_id }
-      resource_config:
-        CidrBlock:  10.20.0.0/24
-    relationships:
-    - type: cloudify.relationships.depends_on
-      target: vpc
-
-  security_group:
-    type: cloudify.nodes.aws.ec2.SecurityGroup
-    properties:
-      client_config: *client_config
-      use_external_resource: true
-      resource_id: { get_input: aws_security_group_id }
-      resource_config:
-        GroupName: igr-tests
-        Description: igr-tests
-    relationships:
-    - type: cloudify.relationships.depends_on
-      target: vpc
-
-  vpc:
-    type: cloudify.nodes.aws.ec2.Vpc
-    properties:
-      client_config: *client_config
-      use_external_resource: true
-      resource_id: { get_input: aws_vpc_id }
-      resource_config:
-        CidrBlock: 10.20.0.0/24
-
-  cloud_init:
-    type: cloudify.nodes.CloudInit.CloudConfig
-    properties:
-      resource_config:
-        users:
-        - name: { get_input: agent_user }
-          shell: /bin/bash
-          sudo: ['ALL=(ALL) NOPASSWD:ALL']
-          ssh-authorized-keys:
-          - { get_attribute: [agent_key, public_key_export] }
-    relationships:
-      - type: cloudify.relationships.depends_on
-        target: agent_key
 
 capabilities:
 

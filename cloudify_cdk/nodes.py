@@ -46,3 +46,32 @@ class RSAKey(NodeTemplate):
                 }
             }
         }
+
+
+class CloudInit(NodeTemplate):
+    def __init__(self,
+                 name,
+                 agent_user,
+                 ssh_authorized_keys):
+        super().__init__(name)
+        self.agent_user = agent_user
+        self.ssh_authorized_keys = ssh_authorized_keys
+
+    def to_dict(self):
+        return {
+            'type': 'cloudify.nodes.CloudInit.CloudConfig',
+            'properties': {
+                'resource_config': {
+                    'users': {[
+                        {'name': self.agent_user,
+                         'shell': '/bin/bash',
+                         'sudo': ['ALL=(ALL) NOPASSWD:ALL'],
+                         'ssh-authorized-keys': self.ssh_authorized_keys}
+                    ]}
+                }
+            },
+            'relationships': [
+                {'type': 'cloudify.relationships.depends_on',
+                 'target': 'agent_key'}
+            ]
+        }
