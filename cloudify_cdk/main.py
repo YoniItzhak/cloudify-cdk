@@ -1,5 +1,6 @@
-from cloudify_cdk.functions import get_secret
 from cloudify_cdk import nodes, aws
+from cloudify_cdk.functions import get_secret
+from cloudify_cdk.capabilities import Capability
 
 
 class EC2Instance(aws.Aws):
@@ -11,46 +12,42 @@ class EC2Instance(aws.Aws):
         )
 
         agent_user = 'centos'
-        agent_key = nodes.RSAKey('agent_key')
+        agent_key = nodes.RSAKey('agent_key', 'agent_key')
 
-        instance = aws.VM('vm',
-                          self.client_config,
-                          agent_user=agent_user,
+        instance = aws.VM('vm', self.client_config, agent_user=agent_user,
                           agent_key=agent_key.get_attr('private_key_export'))
 
         vpc = aws.Vpc('vpc', self.client_config, 'vpc-0235ea2ac078b0c40')
 
-        subnet = aws.Subnet('subnet',
-                            self.client_config,
-                            'subnet-0d8d2ba78d7cab57c')
+        subnet = aws.Subnet('subnet', self.client_config, 'subnet-0d8d2ba78d7cab57c')
 
-        elastic_ip = aws.ElasticIP('floating_ip', self.client_config)
+        floating_ip = aws.ElasticIP('floating_ip', self.client_config)
 
-        security_group = aws.SecurityGroup('security_group',
-                                           self.client_config,
-                                           'sg-0571e4ce821463913',
-                                           'igr-tests',
+        security_group = aws.SecurityGroup('security_group', self.client_config,
+                                           'sg-0571e4ce821463913', 'igr-tests',
                                            'igr-tests')
 
-        nic = aws.NIC('nic',
-                      self.client_config,
+        nic = aws.NIC('nic', self.client_config,
                       subnet_id=subnet.get_attr('aws_resource_id'),
                       groups=[security_group.get_attr('aws_resource_id')])
 
-        cloud_init = nodes.CloudInit(
-            'cloud_init',
-            agent_user=agent_user,
-            ssh_authorized_keys=[agent_key.get_attr('private_key_export')]
-        )
+        cloud_init = nodes.CloudInit('cloud_init', agent_user=agent_user,
+                                     ssh_authorized_keys=[agent_key.get_attr('private_key_export')])
 
-        self.node_templates = [instance,
-                               agent_key,
-                               vpc,
-                               subnet,
-                               elastic_ip,
-                               security_group,
-                               nic,
-                               cloud_init]
+        self.node_templates = [instance, agent_key, vpc, subnet, floating_ip,
+                               security_group, nic, cloud_init]
+
+        self.capabilities = [
+            Capability('endpoint',
+                       value=floating_ip.get_attr('aws_resource_id'),
+                       description='The external endpoint of the application'),
+            Capability('user',
+                       value=agent_user,
+                       description='User ID'),
+            Capability('key_content',
+                       value=agent_key.get_attr('private_key_export'),
+                       description='Private agent key')
+        ]
 
 
 def main():

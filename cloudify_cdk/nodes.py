@@ -12,11 +12,13 @@ class NodeTemplate(object):
 class RSAKey(NodeTemplate):
     def __init__(self,
                  name,
+                 key_name,
                  openssh_format=True,
                  use_secret_store=True,
                  use_secrets_if_exist=True,
                  store_private_key_material=True):
         super().__init__(name)
+        self.key_name = key_name
         self.openssh_format = openssh_format
         self.use_secret_store = use_secret_store
         self.use_secrets_if_exist = use_secrets_if_exist
@@ -27,7 +29,7 @@ class RSAKey(NodeTemplate):
             'type': 'cloudify.keys.nodes.RSAKey',
             'properties': {
                 'resource_config': {
-                    'key_name': self.name,
+                    'key_name': self.key_name,
                     'openssh_format': self.openssh_format
                 },
                 'use_secret_store': self.use_secret_store,
@@ -62,12 +64,12 @@ class CloudInit(NodeTemplate):
             'type': 'cloudify.nodes.CloudInit.CloudConfig',
             'properties': {
                 'resource_config': {
-                    'users': {[
+                    'users': [
                         {'name': self.agent_user,
                          'shell': '/bin/bash',
                          'sudo': ['ALL=(ALL) NOPASSWD:ALL'],
                          'ssh-authorized-keys': self.ssh_authorized_keys}
-                    ]}
+                    ]
                 }
             },
             'relationships': [

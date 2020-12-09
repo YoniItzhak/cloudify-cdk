@@ -18,6 +18,7 @@ class Aws(object):
         self.blueprint_schema_name = 'aws_base.yaml'
 
         self.node_templates = []
+        self.capabilities = []
 
     @staticmethod
     def get_template():
@@ -34,10 +35,18 @@ class Aws(object):
 
         return node_templates_dict
 
+    def _prepare_capabilities(self):
+        capabilities_dict = {}
+        for capability in self.capabilities:
+            capabilities_dict[capability.name] = capability.to_dict()
+
+        return capabilities_dict
+
     def synth(self, output_path):
         rendered_data = self.get_template().render(
             client_config=self.client_config,
             node_templates=self._prepare_node_templates(),
+            capabilities=self._prepare_capabilities()
         )
         with open(output_path, 'w') as blueprint:
             blueprint.write(rendered_data)
@@ -253,7 +262,7 @@ class NIC(NodeTemplate):
                     'kwargs': {
                         'Description': self.description,
                         'SubnetId': self.subnet_id,
-                        'groups': self.groups
+                        'Groups': self.groups
                     }
                 }
             },
