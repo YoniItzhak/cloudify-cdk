@@ -2,7 +2,9 @@ import pkg_resources
 
 from jinja2 import Environment, FileSystemLoader
 
-from cloudify_cdk.nodes import NodeTemplate
+from nodes import NodeTemplate
+
+DEFAULT_BP_PATH = 'blueprint_from_cdk.yaml'
 
 
 class Aws(object):
@@ -24,7 +26,7 @@ class Aws(object):
     def get_template():
         templates_env = Environment(
             loader=FileSystemLoader(
-                pkg_resources.resource_filename('cloudify_cdk', 'schemas')))
+                pkg_resources.resource_filename('cfy_cdk', 'schemas')))
 
         return templates_env.get_template('aws_base.yaml')
 
@@ -42,13 +44,12 @@ class Aws(object):
 
         return capabilities_dict
 
-    def synth(self, output_path):
+    def synth(self):
         rendered_data = self.get_template().render(
-            client_config=self.client_config,
             node_templates=self._prepare_node_templates(),
             capabilities=self._prepare_capabilities()
         )
-        with open(output_path, 'w') as blueprint:
+        with open('blueprint_from_cdk.yaml', 'w') as blueprint:
             blueprint.write(rendered_data)
 
 
@@ -68,7 +69,7 @@ class VM(NodeTemplate):
                  use_public_ip=True,
                  relationships=None
                  ):
-        super().__init__(name)
+        super(VM, self).__init__(name)
         self.client_config = client_config
         self.agent_install_method = agent_install_method
         self.agent_user = agent_user
@@ -141,7 +142,7 @@ class Vpc(NodeTemplate):
                  client_config,
                  vpc_id,
                  cidr_block='10.20.0.0/24'):
-        super().__init__(name)
+        super(Vpc, self).__init__(name)
         self.client_config = client_config
         self.vpc_id = vpc_id
         self.cidr_block = cidr_block
@@ -166,7 +167,7 @@ class Subnet(NodeTemplate):
                  client_config,
                  subnet_id,
                  cidr_block='10.20.0.0/24'):
-        super().__init__(name)
+        super(Subnet, self).__init__(name)
         self.client_config = client_config
         self.subnet_id = subnet_id
         self.cidr_block = cidr_block
@@ -193,7 +194,7 @@ class ElasticIP(NodeTemplate):
     def __init__(self,
                  name,
                  client_config):
-        super().__init__(name)
+        super(ElasticIP, self).__init__(name)
         self.client_config = client_config
 
     def to_dict(self):
@@ -216,7 +217,7 @@ class SecurityGroup(NodeTemplate):
                  security_group_id,
                  security_group_name,
                  security_group_description):
-        super().__init__(name)
+        super(SecurityGroup, self).__init__(name)
         self.client_config = client_config
         self.security_group_id = security_group_id
         self.security_group_name = security_group_name
@@ -247,7 +248,7 @@ class NIC(NodeTemplate):
                  client_config,
                  subnet_id,
                  groups):
-        super().__init__(name)
+        super(NIC, self).__init__(name)
         self.client_config = client_config
         self.subnet_id = subnet_id
         self.groups = groups

@@ -17,7 +17,7 @@ class RSAKey(NodeTemplate):
                  use_secret_store=True,
                  use_secrets_if_exist=True,
                  store_private_key_material=True):
-        super().__init__(name)
+        super(RSAKey, self).__init__(name)
         self.key_name = key_name
         self.openssh_format = openssh_format
         self.use_secret_store = use_secret_store
@@ -55,7 +55,7 @@ class CloudInit(NodeTemplate):
                  name,
                  agent_user,
                  ssh_authorized_keys):
-        super().__init__(name)
+        super(CloudInit, self).__init__(name)
         self.agent_user = agent_user
         self.ssh_authorized_keys = ssh_authorized_keys
 

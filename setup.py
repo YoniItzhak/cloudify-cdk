@@ -16,17 +16,16 @@ setup(
     version='1.0.0',
     author='Cloudify',
     author_email='cosmo-admin@cloudify.co',
-    packages=['cloudify_cdk'],
+    packages=['cfy_cdk'],
     include_package_data=True,
     license='LICENSE',
     description="Cloudify Cloud Development Kit",
     entry_points={
         'console_scripts': [
-            'cfycdk = cloudify_cdk.main:main'
+            'cfycdk = cfy_cdk.main:main'
         ]
     },
     install_requires=[
-        'pyyaml>=5.3.0,<5.4.0',
         'jinja2>=2.11.0,<2.12.0',
     ]
 )
